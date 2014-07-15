@@ -20,6 +20,12 @@ func TestMessageSet_NewMessageSet(t *testing.T) {
 	_, err = NewMessageSet(0, []Message{}...)
 	Equals(t, err, ErrNoMessages)
 
+	_, err = NewMessageSet(0,
+		NewMessage([]byte("k"), []byte("v"), NoCodec),
+		NewMessage([]byte("k"), []byte("v"), GZIPCodec),
+	)
+	Equals(t, err, ErrMultipleCodecs)
+
 	_, err = NewMessageSet(0, NewMessage([]byte("k"), []byte("v"), NoCodec))
 	OK(t, err)
 
