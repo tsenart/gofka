@@ -8,7 +8,7 @@ import (
 
 // MessageSet represents an in-memory container for multiple Messages
 // with a fixed serialization format.
-type MessageSet []byte
+type MessageSet struct{ buf *bytes.Buffer }
 
 var (
 	// ErrMultipleCodecs is an error returned by NewMessageSet
@@ -49,7 +49,7 @@ var (
 //  -----------------------------
 //
 // The byte sizes of each of these fields are: offset: 8, size: 4, message: size
-func NewMessageSet(offset uint64, msgs ...Message) (MessageSet, error) {
+func NewMessageSet(offset uint64, msgs ...Message) (*MessageSet, error) {
 	if len(msgs) == 0 {
 		return nil, ErrNoMessages
 	} else if msgs[0] == nil {
@@ -66,54 +66,44 @@ func NewMessageSet(offset uint64, msgs ...Message) (MessageSet, error) {
 		size += msgOverhead + msgs[i].Size()
 	}
 
-	var (
-		err error
-		ms  = make(MessageSet, size).fill(offset, msgs...)
-	)
-
-	if ms, err = ms.compress(offset, codec); err != nil {
+	ms := &MessageSet{bytes.NewBuffer(make([]byte, size))}
+	ms.fill(offset, msgs...)
+	if err := ms.compress(offset, codec); err != nil {
 		return nil, err
 	}
-
 	return ms, nil
 }
 
 // Size returns the byte size of the MessageSet.
 func (ms MessageSet) Size() uint32 {
-	return uint32(len(ms))
+	return uint32(ms.buf.Len())
 }
 
 // Equal returns whether other MessageSet is equal to ms.
 func (ms MessageSet) Equal(other MessageSet) bool {
-	return bytes.Equal(ms, other)
+	return bytes.Equal(ms.buf.Bytes(), other.buf.Bytes())
 }
 
-func (ms MessageSet) fill(offset uint64, msgs ...Message) MessageSet {
-	var (
-		cursor    []byte
-		low, high int
-	)
+func (ms MessageSet) fill(offset uint64, msgs ...Message) {
+	ms.buf.Reset()
 	for _, m := range msgs {
 		offset++
-		low = len(cursor)
-		high = low + msgOverhead + len(m)
-		cursor = ms[low:high]
-		binary.BigEndian.PutUint64(cursor, offset)
-		binary.BigEndian.PutUint32(cursor[offsetLength:], m.Size())
-		copy(cursor[msgOverhead:], m)
+		binary.Write(ms.buf, binary.BigEndian, offset)
+		binary.Write(ms.buf, binary.BigEndian, ms.Size())
+		binary.Write(ms.buf, binary.BigEndian, m)
 	}
-	return ms[:high]
 }
 
-func (ms MessageSet) compress(offset uint64, codec Codec) (MessageSet, error) {
+func (ms MessageSet) compress(offset uint64, codec Codec) error {
 	if codec == NoCodec {
-		return ms, nil
+		return nil
 	}
-	value, err := codec.Compress(ms)
+	value, err := codec.Compress(ms.buf.Bytes())
 	if err != nil {
-		return ms, err
+		return err
 	}
-	return ms.fill(offset-1, NewMessage(nil, value, codec)), nil
+	ms.fill(offset-1, NewMessage(nil, value, codec))
+	return nil
 }
 
 const (
