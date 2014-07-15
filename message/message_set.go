@@ -24,7 +24,7 @@ var (
 
 // NewMessageSet returns a MessageSet containing the provided Messages.
 // The first offset is set to the provided one and increments from there for
-// each Message. Nil Messages will be ignored.
+// each Message.
 //
 // The compression Codec is found by iterating over all passed Messages and
 // verifying that they all have the same Codec, or an error is returned.
