@@ -44,3 +44,35 @@ func TestMessageSet_NewMessageSet(t *testing.T) {
 		Assert(t, comp.Size() < plain.Size(), msg)
 	}
 }
+
+func BenchmarkMessageSet_NewMessageSetWithNoCodec(b *testing.B) {
+	benchmarkMessageSet_NewMessageSet(b, NoCodec)
+}
+
+func BenchmarkMessageSet_NewMessageSetWithGZIPCodec(b *testing.B) {
+	benchmarkMessageSet_NewMessageSet(b, GZIPCodec)
+}
+
+func benchmarkMessageSet_NewMessageSet(b *testing.B, codec Codec) {
+	key, value := make([]byte, 1024*1024), make([]byte, 1024*1024)
+	_, err := rand.Read(key)
+	OK(b, err)
+	_, err = rand.Read(value)
+	OK(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		NewMessageSet(0,
+			NewMessage(key, value, codec),
+			NewMessage(value, key, codec),
+			NewMessage(key, value, codec),
+			NewMessage(value, key, codec),
+			NewMessage(key, value, codec),
+			NewMessage(value, key, codec),
+			NewMessage(key, value, codec),
+			NewMessage(value, key, codec),
+			NewMessage(key, value, codec),
+			NewMessage(value, key, codec),
+		)
+	}
+}
