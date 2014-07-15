@@ -15,16 +15,6 @@ const (
 	One Magic = 1
 )
 
-// Codec is a type representing a Message's compression codec.
-type Codec byte
-
-const (
-	// NoCodec is a Codec representing no compression.
-	NoCodec = iota
-	// GZIPCodec is a Codec representing GZIP compression.
-	GZIPCodec
-)
-
 // Message is the individual datum handled throughout the system.
 type Message []byte
 
@@ -132,4 +122,9 @@ func (m Message) SetValue(value []byte) {
 // Equal returns whether other Message is equal to m.
 func (m Message) Equal(other Message) bool {
 	return bytes.Equal(m, other)
+}
+
+// Size returns the byte size of the Message.
+func (m Message) Size() uint32 {
+	return uint32(len(m))
 }
