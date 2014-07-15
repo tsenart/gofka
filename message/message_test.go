@@ -11,6 +11,6 @@ func TestMessage_ChecksumHashValid(t *testing.T) {
 	m := NewMessage([]byte("key"), []byte("value"), NoCodec)
 	Equals(t, m.Checksum(), m.Hash())
 	Assert(t, m.Valid(), "Valid: want: true, got: false")
-	copy(m[CrcOffset:], []byte{0, 0, 0, 0})
+	m.SetValue([]byte("foobar"))
 	Assert(t, !m.Valid(), "Valid: want: false, got: true")
 }

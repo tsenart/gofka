@@ -29,18 +29,18 @@ const (
 type Message []byte
 
 const (
-	CrcOffset       = 0
-	CrcLength       = 4
-	MagicOffset     = CrcOffset + CrcLength
-	MagicLength     = 1
-	AttrsOffset     = MagicOffset + MagicLength
-	AttrsLength     = 1
-	KeySizeOffset   = AttrsOffset + AttrsLength
-	KeySizeLength   = 4
-	KeyOffset       = KeySizeOffset + KeySizeLength
-	ValueSizeLength = 4
-	MinHeaderSize   = CrcLength + MagicLength + AttrsLength + KeySizeLength + ValueSizeLength
-	CodecMask       = 0x07
+	crcOffset       = 0
+	crcLength       = 4
+	magicOffset     = crcOffset + crcLength
+	magicLength     = 1
+	attrsOffset     = magicOffset + magicLength
+	attrsLength     = 1
+	keySizeOffset   = attrsOffset + attrsLength
+	keySizeLength   = 4
+	keyOffset       = keySizeOffset + keySizeLength
+	valueSizeLength = 4
+	minHeaderSize   = crcLength + magicLength + attrsLength + keySizeLength + valueSizeLength
+	codecMask       = 0x07
 )
 
 // NewMessage returns a new Message with the given parameters.
@@ -53,7 +53,7 @@ func NewMessage(key, value []byte, codec Codec) Message {
 		value = []byte{}
 	}
 
-	m := make(Message, MinHeaderSize+len(key)+len(value))
+	m := make(Message, minHeaderSize+len(key)+len(value))
 	m.SetMagic(One)
 	m.SetCodec(codec)
 	m.SetKey(key)
@@ -65,17 +65,17 @@ func NewMessage(key, value []byte, codec Codec) Message {
 
 // Checksum returns the Message's CRC32 checksum.
 func (m Message) Checksum() uint32 {
-	return binary.BigEndian.Uint32(m[CrcOffset:])
+	return binary.BigEndian.Uint32(m[crcOffset:])
 }
 
 // SetChecksum computes and saves the Message's CRC32 checksum.
 func (m Message) SetChecksum() {
-	binary.BigEndian.PutUint32(m[CrcOffset:], m.Hash())
+	binary.BigEndian.PutUint32(m[crcOffset:], m.Hash())
 }
 
 // Hash computes and returns the Message's CRC32 checksum.
 func (m Message) Hash() uint32 {
-	return crc32.ChecksumIEEE(m[MagicOffset:])
+	return crc32.ChecksumIEEE(m[magicOffset:])
 }
 
 // Valid returns whether the Message's integrity is intact by comparing the
@@ -86,47 +86,47 @@ func (m Message) Valid() bool {
 
 // Magic returns a Magic byte representing the Message's version.
 func (m Message) Magic() Magic {
-	return Magic(m[MagicOffset])
+	return Magic(m[magicOffset])
 }
 
 // SetMagic sets the Message's magic byte.
 func (m Message) SetMagic(magic Magic) {
-	m[MagicOffset] = byte(magic)
+	m[magicOffset] = byte(magic)
 }
 
 // SetCodec sets the Message's compression codec.
 func (m Message) SetCodec(codec Codec) {
-	m[AttrsOffset] = CodecMask & byte(codec)
+	m[attrsOffset] = codecMask & byte(codec)
 }
 
 // Codec returns a Codec byte representing the Message's compression codec.
 func (m Message) Codec() Codec {
-	return Codec(m[AttrsOffset] & CodecMask)
+	return Codec(m[attrsOffset] & codecMask)
 }
 
 // Key returns the Message's key.
 func (m Message) Key() []byte {
-	keyLength := binary.BigEndian.Uint32(m[KeySizeOffset:])
-	return m[KeyOffset : KeyOffset+keyLength]
+	keyLength := binary.BigEndian.Uint32(m[keySizeOffset:])
+	return m[keyOffset : keyOffset+keyLength]
 }
 
 // SetKey sets the Message's key.
 func (m Message) SetKey(key []byte) {
-	binary.BigEndian.PutUint32(m[KeySizeOffset:], uint32(len(key)))
-	copy(m[KeyOffset:], key)
+	binary.BigEndian.PutUint32(m[keySizeOffset:], uint32(len(key)))
+	copy(m[keyOffset:], key)
 }
 
 // Value returns the Message's value.
 func (m Message) Value() []byte {
-	keyLength := binary.BigEndian.Uint32(m[KeySizeOffset:])
-	return m[KeyOffset+keyLength+ValueSizeLength:]
+	keyLength := binary.BigEndian.Uint32(m[keySizeOffset:])
+	return m[keyOffset+keyLength+valueSizeLength:]
 }
 
 // SetValue sets the Message's value.
 func (m Message) SetValue(value []byte) {
-	keyLength := binary.BigEndian.Uint32(m[KeySizeOffset:])
-	binary.BigEndian.PutUint32(m[KeyOffset+keyLength:], uint32(len(value)))
-	copy(m[KeyOffset+keyLength+ValueSizeLength:], value)
+	keyLength := binary.BigEndian.Uint32(m[keySizeOffset:])
+	binary.BigEndian.PutUint32(m[keyOffset+keyLength:], uint32(len(value)))
+	copy(m[keyOffset+keyLength+valueSizeLength:], value)
 }
 
 // Equal returns whether other Message is equal to m.
