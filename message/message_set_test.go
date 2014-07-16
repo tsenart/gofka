@@ -29,8 +29,29 @@ func TestMessageSet_NewMessageSet(t *testing.T) {
 	_, err = NewMessageSet(0, NewMessage([]byte("k"), []byte("v"), NoCodec))
 	OK(t, err)
 
+}
+
+func TestMessageSet_Set(t *testing.T) { t.Skip("TODO") }
+
+func TestMessageSet_Get(t *testing.T) {
+	want := NewMessage([]byte("key"), []byte("value"), NoCodec)
+	ms, err := NewMessageSet(100, NewMessage(nil, nil, NoCodec), want)
+	OK(t, err)
+
+	msg, last := ms.Get(99)
+	Equals(t, uint32(0), last)
+	Equals(t, Message(nil), msg)
+
+	msg, last = ms.Get(101)
+	Equals(t, ms.Size()-want.Size()-MsgOverhead, last)
+	Equals(t, want, msg)
+}
+
+func TestMessageSet_Compress(t *testing.T) { t.Skip("TODO") }
+
+func TestMessageSet_Codecs(t *testing.T) {
 	payload := make([]byte, 1024*1024)
-	_, err = rand.Read(payload)
+	_, err := rand.Read(payload)
 	OK(t, err)
 
 	plain, err := NewMessageSet(0, NewMessage(payload, payload, NoCodec))
@@ -39,7 +60,12 @@ func TestMessageSet_NewMessageSet(t *testing.T) {
 	for _, codec := range []Codec{GZIPCodec} {
 		comp, err := NewMessageSet(0, NewMessage(payload, payload, codec))
 		OK(t, err)
-		msg := fmt.Sprintf("compressed = %d bytes, uncompressed = %d bytes", comp.Size(), plain.Size())
+		msg := fmt.Sprintf(
+			"%s compressed = %d bytes, uncompressed = %d bytes",
+			codec,
+			comp.Size(),
+			plain.Size(),
+		)
 		t.Log(msg)
 		Assert(t, comp.Size() < plain.Size(), msg)
 	}

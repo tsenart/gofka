@@ -55,7 +55,7 @@ func NewMessageSet(offset uint64, msgs ...Message) (MessageSet, error) {
 	} else if msgs[0] == nil {
 		return nil, ErrNilMessages
 	}
-	codec, size := msgs[0].Codec(), msgOverhead+msgs[0].Size()
+	codec, size := msgs[0].Codec(), MsgOverhead+msgs[0].Size()
 
 	for i := 1; i < len(msgs); i++ {
 		if msgs[i] == nil {
@@ -63,19 +63,66 @@ func NewMessageSet(offset uint64, msgs ...Message) (MessageSet, error) {
 		} else if msgs[i].Codec() != codec {
 			return nil, ErrMultipleCodecs
 		}
-		size += msgOverhead + msgs[i].Size()
+		size += MsgOverhead + msgs[i].Size()
 	}
 
-	var (
-		err error
-		ms  = make(MessageSet, size).fill(offset, msgs...)
-	)
-
-	if ms, err = ms.compress(offset, codec); err != nil {
+	ms := make(MessageSet, size)
+	ms = ms[:ms.Set(offset, msgs...)]
+	n, err := ms.Compress(offset, codec)
+	if err != nil {
 		return nil, err
 	}
+	return ms[:n], nil
+}
 
-	return ms, nil
+// Set sets the provided Messages starting at the provided logical offset and
+// returns the position of the last byte written.
+func (ms MessageSet) Set(offset uint64, msgs ...Message) uint32 {
+	_, n := ms.Get(offset)
+
+	for i, msg := range msgs {
+		binary.BigEndian.PutUint64(ms[n:], offset+uint64(i))
+		binary.BigEndian.PutUint32(ms[n+OffsetLength:], msg.Size())
+		n += uint32(MsgOverhead + copy(ms[n+MsgOverhead:], msg))
+	}
+
+	return n
+}
+
+// Get returns the Message with the provided logical offset in MessageSet as
+// well as the position where it was found.
+func (ms MessageSet) Get(offset uint64) (Message, uint32) {
+	var (
+		offs    uint64
+		size, i uint32
+	)
+
+	for i = 0; i < ms.Size(); i += MsgOverhead + size {
+		offs = binary.BigEndian.Uint64(ms[i : i+OffsetLength])
+		size = binary.BigEndian.Uint32(ms[i+OffsetLength : i+MsgOverhead])
+
+		if offs == offset {
+			return Message(ms[i+MsgOverhead : i+MsgOverhead+size]), i
+		}
+	}
+
+	return nil, 0
+}
+
+// Compress reduces the MessageSet to a single Message which holds the
+// compressed payload in its value. It returns the position of the last byte
+// written as well as an error when the Codec fails to compress.
+func (ms MessageSet) Compress(offset uint64, codec Codec) (uint32, error) {
+	if codec == NoCodec {
+		return uint32(len(ms)), nil
+	}
+
+	value, err := codec.Compress(ms)
+	if err != nil {
+		return 0, err
+	}
+
+	return ms.Set(offset-1, NewMessage(nil, value, codec)), nil
 }
 
 // Size returns the byte size of the MessageSet.
@@ -88,36 +135,8 @@ func (ms MessageSet) Equal(other MessageSet) bool {
 	return bytes.Equal(ms, other)
 }
 
-func (ms MessageSet) fill(offset uint64, msgs ...Message) MessageSet {
-	var (
-		cursor    []byte
-		low, high int
-	)
-	for _, m := range msgs {
-		offset++
-		low = len(cursor)
-		high = low + msgOverhead + len(m)
-		cursor = ms[low:high]
-		binary.BigEndian.PutUint64(cursor, offset)
-		binary.BigEndian.PutUint32(cursor[offsetLength:], m.Size())
-		copy(cursor[msgOverhead:], m)
-	}
-	return ms[:high]
-}
-
-func (ms MessageSet) compress(offset uint64, codec Codec) (MessageSet, error) {
-	if codec == NoCodec {
-		return ms, nil
-	}
-	value, err := codec.Compress(ms)
-	if err != nil {
-		return ms, err
-	}
-	return ms.fill(offset-1, NewMessage(nil, value, codec)), nil
-}
-
 const (
-	msgSizeLength = 4
-	offsetLength  = 8
-	msgOverhead   = msgSizeLength + offsetLength
+	MsgSizeLength = 4
+	OffsetLength  = 8
+	MsgOverhead   = MsgSizeLength + OffsetLength
 )
