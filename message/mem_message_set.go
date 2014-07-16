@@ -8,6 +8,8 @@ import (
 // MemMessageSet is an in-memory implementation of the MessageSet interface.
 type MemMessageSet struct{ buf []byte }
 
+var _ MessageSet = (*MemMessageSet)(nil)
+
 // NewMemMessageSet returns a MemMessageSet containing the provided Messages.
 // The first offset is set to the provided one and increments from there for
 // each Message.
