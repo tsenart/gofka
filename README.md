@@ -15,7 +15,7 @@ development stages, I intend for it to be:
 Kafka is an incredible piece of software enginneering with many many man months
 of deep and subtle thinking put into it. I owe a lot to the [team behind it](https://kafka.apache.org/committers.html)!
 
-This raises the question: **Why am I developing Gofka?**
+This raises the question: **Why Gofka?**
 ## Rational
 ### Kafka depends on [Zookeeper](https://zookeeper.apache.org/)
 When you're a JVM shop, with a JVM stack, this might come as natural.
