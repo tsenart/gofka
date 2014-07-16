@@ -5,16 +5,18 @@ import (
 	"io"
 )
 
+// Errors used by implementers of the MessageSet interface.
 var (
-	// ErrMultipleCodecs is an error returned by NewMemMessageSet
-	// when the provided slice of Messages contains more than one Codec.
-	ErrMultipleCodecs = fmt.Errorf("multiple codecs found in msgs")
-	// ErrNoMessages is an error returned by NewMemMessageSet
-	// when the provided Message slice is empty.
-	ErrNoMessages = fmt.Errorf("no messages provided")
-	// ErrNilMessages is an error returned by NewMemMessageSet
-	// when the provided Message slice includes nil Messages.
-	ErrNilMessages = fmt.Errorf("nil messages provided")
+	ErrMultipleCodecs = fmt.Errorf("multiple codecs found")
+	ErrNoMessages     = fmt.Errorf("no messages provided")
+	ErrNilMessages    = fmt.Errorf("nil messages provided")
+)
+
+// Constants used by implementers of the MessageSet interface.
+const (
+	OffsetLength  = 8
+	MsgSizeLength = 4
+	MsgOverhead   = MsgSizeLength + OffsetLength
 )
 
 // MessageSet defines an interface for a flat Message container with a fixed

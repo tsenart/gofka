@@ -102,9 +102,3 @@ func (ms *MemMessageSet) Size() uint32 {
 func (ms *MemMessageSet) Equal(other MemMessageSet) bool {
 	return bytes.Equal(ms.buf, other.buf)
 }
-
-const (
-	MsgSizeLength = 4
-	OffsetLength  = 8
-	MsgOverhead   = MsgSizeLength + OffsetLength
-)

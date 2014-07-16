@@ -71,15 +71,15 @@ func TestMemMessageSet_Codecs(t *testing.T) {
 	}
 }
 
-func BenchmarkMemMessageSet_NewMemMessageSetWithNoCodec(b *testing.B) {
-	benchmarkMemMessageSet_NewMemMessageSet(b, NoCodec)
+func BenchmarkNewMemMessageSetWithNoCodec(b *testing.B) {
+	benchmarkNewMemMessageSet(b, NoCodec)
 }
 
-func BenchmarkMemMessageSet_NewMemMessageSetWithGZIPCodec(b *testing.B) {
-	benchmarkMemMessageSet_NewMemMessageSet(b, GZIPCodec)
+func BenchmarkNewMemMessageSetWithGZIPCodec(b *testing.B) {
+	benchmarkNewMemMessageSet(b, GZIPCodec)
 }
 
-func benchmarkMemMessageSet_NewMemMessageSet(b *testing.B, codec Codec) {
+func benchmarkNewMemMessageSet(b *testing.B, codec Codec) {
 	key, value := make([]byte, 1024*1024), make([]byte, 1024*1024)
 	_, err := rand.Read(key)
 	OK(b, err)
