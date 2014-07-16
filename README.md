@@ -28,7 +28,7 @@ This means Gofka can be **100%** dependency free.
 
 ### Kafka depends on the Java Virtual Machine (JVM)
 Without deep expertise, the JVM is a hassle to operate and deploy.
-It is very important for Kakfka to control its memory footprint and layout which
+It is very important for Kafka to control its memory footprint and layout which
 is also quite a challange using the JVM. With Go the only artifact to be
 shipped and managed is an executable binary (besides configuration,
 monitoring, etc... which is orthogonal to this point).
