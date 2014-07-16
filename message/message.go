@@ -3,6 +3,7 @@ package message
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 )
 
@@ -127,4 +128,39 @@ func (m Message) Equal(other Message) bool {
 // Size returns the byte size of the Message.
 func (m Message) Size() uint32 {
 	return uint32(len(m))
+}
+
+const (
+	fmtStr = "Message{crc=0x%x magic=0x%x codec=%s key[0:%d:%d]=%q value[0:%d:%d]=%q}"
+	limit  = 10
+)
+
+// String implments the fmt.Stringer interface.
+func (m Message) String() string {
+	var shortKey, shortVal []byte
+	key, value := m.Key(), m.Value()
+
+	if len(key) > limit {
+		shortKey = key[:limit]
+	} else {
+		shortKey = key[:len(key)]
+	}
+
+	if len(value) > limit {
+		shortVal = value[:limit]
+	} else {
+		shortVal = value[:len(value)]
+	}
+
+	return fmt.Sprintf(fmtStr,
+		m.Checksum(),
+		m.Magic(),
+		m.Codec(),
+		len(shortKey),
+		len(key),
+		shortKey,
+		len(shortVal),
+		len(value),
+		shortVal,
+	)
 }

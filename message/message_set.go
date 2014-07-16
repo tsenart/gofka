@@ -2,6 +2,7 @@ package message
 
 import (
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -22,7 +23,7 @@ const (
 // MessageSet defines an interface for a flat Message container with a fixed
 // serialization format, whether in-memory or on-disk.
 //
-// The following diagrams describe the MessageSet memory layout.
+// The following diagrams describe the MessageSet byte layout.
 //
 // With no compression enabled, each Message is laid out sequentially
 // and preceded by a header containing its offset and size.
@@ -40,10 +41,11 @@ const (
 //
 // The byte sizes of each of these fields are: offset: 8, size: 4, message: size
 type MessageSet interface {
+	Iterate(fn Iterator) (halted bool)
+	Size() int
 	io.WriterTo
-	Has(msg Message) bool
-	Offset(msg Message) uint64
-	Get(offset, limit uint64) ([]Message, error)
-	Set(offset uint64, msgs ...Message) error
-	Each(offset uint64, fn func(msg Message))
+	fmt.Stringer
 }
+
+// Iterator defines an utility type defining a MessageSet iterator
+type Iterator func(offset uint64, size uint32, msg Message) (halt bool)

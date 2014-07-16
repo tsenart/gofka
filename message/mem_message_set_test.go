@@ -31,24 +31,6 @@ func TestMemMessageSet_NewMemMessageSet(t *testing.T) {
 
 }
 
-func TestMemMessageSet_Set(t *testing.T) { t.Skip("TODO") }
-
-func TestMemMessageSet_Get(t *testing.T) {
-	want := NewMessage([]byte("key"), []byte("value"), NoCodec)
-	ms, err := NewMemMessageSet(100, NewMessage(nil, nil, NoCodec), want)
-	OK(t, err)
-
-	msg, last := ms.Get(99)
-	Equals(t, uint32(0), last)
-	Equals(t, Message(nil), msg)
-
-	msg, last = ms.Get(101)
-	Equals(t, ms.Size()-want.Size()-MsgOverhead, last)
-	Equals(t, want, msg)
-}
-
-func TestMemMessageSet_Compress(t *testing.T) { t.Skip("TODO") }
-
 func TestMemMessageSet_Codecs(t *testing.T) {
 	payload := make([]byte, 1024*1024)
 	_, err := rand.Read(payload)
@@ -67,6 +49,8 @@ func TestMemMessageSet_Codecs(t *testing.T) {
 			plain.Size(),
 		)
 		t.Log(msg)
+		t.Log(plain)
+		t.Log(comp)
 		Assert(t, comp.Size() < plain.Size(), msg)
 	}
 }

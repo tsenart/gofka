@@ -3,6 +3,8 @@ package message
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+	"io"
 )
 
 // MemMessageSet is an in-memory implementation of the MessageSet interface.
@@ -37,50 +39,90 @@ func NewMemMessageSet(offset uint64, msgs ...Message) (*MemMessageSet, error) {
 	}
 
 	ms := &MemMessageSet{make([]byte, size)}
-	ms.Set(offset, msgs...)
-	if err := ms.Compress(offset, codec); err != nil {
+	ms.set(offset, msgs...)
+	if err := ms.compress(offset, codec); err != nil {
 		return nil, err
 	}
 	return ms, nil
 }
 
-// Set appends the provided Messages starting at the provided logical offset.
-func (ms *MemMessageSet) Set(offset uint64, msgs ...Message) {
-	_, n := ms.Get(offset)
+// Iterate calls fn for each Message in the MessageSet.
+// TODO: Support decompression.
+func (ms *MemMessageSet) Iterate(fn Iterator) bool {
+	var (
+		offset uint64
+		size   uint32
+		msg    Message
+	)
+	for i := 0; i < ms.Size(); i += int(MsgOverhead + size) {
+		offset = binary.BigEndian.Uint64(ms.buf[i : i+OffsetLength])
+		size = binary.BigEndian.Uint32(ms.buf[i+OffsetLength : i+MsgOverhead])
+		msg = Message(ms.buf[i+MsgOverhead : i+int(MsgOverhead+size)])
 
+		if fn(offset, size, msg) { // Halt iteration
+			return true
+		}
+	}
+	return false
+}
+
+// Size returns the byte size of the MemMessageSet.
+func (ms *MemMessageSet) Size() int {
+	return len(ms.buf)
+}
+
+// Equal returns whether other MemMessageSet is equal to ms.
+func (ms *MemMessageSet) Equal(other MemMessageSet) bool {
+	return bytes.Equal(ms.buf, other.buf)
+}
+
+// WriteTo implements the io.WriterTo interface.
+func (ms *MemMessageSet) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write(ms.buf)
+	return int64(n), err
+}
+
+// String implements the fmt.Stringer interface.
+func (ms *MemMessageSet) String() string {
+	var (
+		str bytes.Buffer
+		lim = 100
+	)
+
+	fmt.Fprintln(&str, "MemMessageSet{")
+	halted := ms.Iterate(func(_ uint64, _ uint32, msg Message) bool {
+		if lim -= 1; lim == 0 {
+			return true
+		}
+		fmt.Fprintln(&str, "  ", msg, ",")
+		return false
+	})
+
+	if halted {
+		fmt.Fprintln(&str, "  ...")
+	}
+
+	fmt.Fprint(&str, "}")
+
+	return str.String()
+}
+
+// set writes the provided Messages to the MessageSet
+// starting with the provided offset.
+func (ms *MemMessageSet) set(offset uint64, msgs ...Message) {
+	var n uint32
 	for i, msg := range msgs {
 		binary.BigEndian.PutUint64(ms.buf[n:], offset+uint64(i))
 		binary.BigEndian.PutUint32(ms.buf[n+OffsetLength:], msg.Size())
 		n += uint32(MsgOverhead + copy(ms.buf[n+MsgOverhead:], msg))
 	}
-
 	ms.buf = ms.buf[:n]
 }
 
-// Get returns the Message with the provided logical offset in MemMessageSet as
-// well as the position where it was found.
-func (ms *MemMessageSet) Get(offset uint64) (Message, uint32) {
-	var (
-		offs    uint64
-		size, i uint32
-	)
-
-	for i = 0; i < ms.Size(); i += MsgOverhead + size {
-		offs = binary.BigEndian.Uint64(ms.buf[i : i+OffsetLength])
-		size = binary.BigEndian.Uint32(ms.buf[i+OffsetLength : i+MsgOverhead])
-
-		if offs == offset {
-			return Message(ms.buf[i+MsgOverhead : i+MsgOverhead+size]), i
-		}
-	}
-
-	return nil, 0
-}
-
-// Compress reduces the MemMessageSet to a single Message which holds the
-// compressed payload in its value. It returns the position of the last byte
-// written as well as an error when the Codec fails to compress.
-func (ms *MemMessageSet) Compress(offset uint64, codec Codec) error {
+// compress reduces the MemMessageSet to a single Message which holds the
+// compressed payload in its value.
+// It returns an error when the Codec fails to compress.
+func (ms *MemMessageSet) compress(offset uint64, codec Codec) error {
 	if codec == NoCodec {
 		return nil
 	}
@@ -90,17 +132,7 @@ func (ms *MemMessageSet) Compress(offset uint64, codec Codec) error {
 		return err
 	}
 
-	ms.Set(offset-1, NewMessage(nil, value, codec))
+	ms.set(offset-1, NewMessage(nil, value, codec))
 
 	return nil
-}
-
-// Size returns the byte size of the MemMessageSet.
-func (ms *MemMessageSet) Size() uint32 {
-	return uint32(len(ms.buf))
-}
-
-// Equal returns whether other MemMessageSet is equal to ms.
-func (ms *MemMessageSet) Equal(other MemMessageSet) bool {
-	return bytes.Equal(ms.buf, other.buf)
 }
