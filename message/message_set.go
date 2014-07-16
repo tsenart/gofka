@@ -1,15 +1,15 @@
 package message
 
 import (
-	"fmt"
+	"errors"
 	"io"
 )
 
 // Errors used by implementers of the MessageSet interface.
 var (
-	ErrMultipleCodecs = fmt.Errorf("multiple codecs found")
-	ErrNoMessages     = fmt.Errorf("no messages provided")
-	ErrNilMessages    = fmt.Errorf("nil messages provided")
+	ErrMultipleCodecs = errors.New("multiple codecs found")
+	ErrNoMessages     = errors.New("no messages provided")
+	ErrNilMessages    = errors.New("nil messages provided")
 )
 
 // Constants used by implementers of the MessageSet interface.
