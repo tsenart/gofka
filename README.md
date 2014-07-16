@@ -2,7 +2,7 @@
 
 Gofka is a dependency free drop-in replacement for
 [Kafka](http://kafka.apache.org/) written in Go. Although still on its early
-development stages, I intend it to be:
+development stages, the requirements are defined:
 * Self-contained
 * Fast and efficient
 * Distributed, fault-tolerant and scalable
