@@ -2,7 +2,7 @@
 
 Gofka is a dependency free drop-in replacement for
 [Kafka](http://kafka.apache.org/) written in Go. Although still on its early
-development stages, I intend for it to be:
+development stages, I intend it to be:
 * Self-contained
 * Fast and efficient
 * Distributed, fault-tolerant and scalable
@@ -24,7 +24,7 @@ and more into the Go stack. Distributed systems development in Go has
 seen the recent adoption of [The Raft Consensus
 Algorithm](https://raftconsensus.github.io/) which with the right
 implementation, solves all problems Kafka had to solve using Zookeeper.
-This means Gofka can be **100%** depdendency free.
+This means Gofka can be **100%** dependency free.
 
 ### Kafka depends on the Java Virtual Machine (JVM)
 Without deep expertise, the JVM is a hassle to operate and deploy.
