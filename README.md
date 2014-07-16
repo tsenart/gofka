@@ -1,8 +1,8 @@
 # Gofka [![Build Status](https://secure.travis-ci.org/tsenart/gofka.png)](http://travis-ci.org/tsenart/gofka)
 
 Gofka is a dependency free drop-in replacement for
-[Kafka](http://kafka.apache.org/) written in Go. Although still on its early
-development stages, the requirements are defined:
+[Kafka](http://kafka.apache.org/) written in Go. Although still in its early
+development stages, the requirements are well defined:
 * Self-contained
 * Fast and efficient
 * Distributed, fault-tolerant and scalable
