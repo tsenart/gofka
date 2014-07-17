@@ -143,13 +143,13 @@ func (m Message) String() string {
 	if len(key) > limit {
 		shortKey = key[:limit]
 	} else {
-		shortKey = key[:len(key)]
+		shortKey = key[:]
 	}
 
 	if len(value) > limit {
 		shortVal = value[:limit]
 	} else {
-		shortVal = value[:len(value)]
+		shortVal = value[:]
 	}
 
 	return fmt.Sprintf(fmtStr,
