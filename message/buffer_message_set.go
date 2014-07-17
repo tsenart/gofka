@@ -7,21 +7,21 @@ import (
 	"io"
 )
 
-// MemMessageSet is an in-memory implementation of the MessageSet interface.
-type MemMessageSet struct{ buf []byte }
+// BufferMessageSet is an in-memory implementation of the MessageSet interface.
+type BufferMessageSet struct{ buf []byte }
 
-var _ MessageSet = (*MemMessageSet)(nil)
+var _ MessageSet = (*BufferMessageSet)(nil)
 
-// NewMemMessageSet returns a MemMessageSet containing the provided Messages.
+// NewBufferMessageSet returns a BufferMessageSet containing the provided Messages.
 // The first offset is set to the provided one and increments from there for
 // each Message.
 //
 // The compression Codec is found by iterating over all passed Messages and
 // verifying that they all have the same Codec, or an error is returned.
-// In case the Codec is valid, the resulting MemMessageSet will have a single
-// Message with its value set to the compressed original MemMessageSet.
+// In case the Codec is valid, the resulting BufferMessageSet will have a single
+// Message with its value set to the compressed original BufferMessageSet.
 // If the compression fails an error will be returned.
-func NewMemMessageSet(offset uint64, msgs ...Message) (*MemMessageSet, error) {
+func NewBufferMessageSet(offset uint64, msgs ...Message) (*BufferMessageSet, error) {
 	if len(msgs) == 0 {
 		return nil, ErrNoMessages
 	} else if msgs[0] == nil {
@@ -38,7 +38,7 @@ func NewMemMessageSet(offset uint64, msgs ...Message) (*MemMessageSet, error) {
 		size += MsgOverhead + msgs[i].Size()
 	}
 
-	ms := &MemMessageSet{make([]byte, size)}
+	ms := &BufferMessageSet{make([]byte, size)}
 	ms.set(offset, msgs...)
 	if err := ms.compress(offset, codec); err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func NewMemMessageSet(offset uint64, msgs ...Message) (*MemMessageSet, error) {
 
 // Iterate calls fn for each Message in the MessageSet.
 // TODO: Support decompression.
-func (ms *MemMessageSet) Iterate(fn Iterator) bool {
+func (ms *BufferMessageSet) Iterate(fn Iterator) bool {
 	var (
 		offset uint64
 		size   uint32
@@ -66,30 +66,30 @@ func (ms *MemMessageSet) Iterate(fn Iterator) bool {
 	return false
 }
 
-// Size returns the byte size of the MemMessageSet.
-func (ms *MemMessageSet) Size() int {
+// Size returns the byte size of the BufferMessageSet.
+func (ms *BufferMessageSet) Size() int {
 	return len(ms.buf)
 }
 
-// Equal returns whether other MemMessageSet is equal to ms.
-func (ms *MemMessageSet) Equal(other MemMessageSet) bool {
+// Equal returns whether other BufferMessageSet is equal to ms.
+func (ms *BufferMessageSet) Equal(other BufferMessageSet) bool {
 	return bytes.Equal(ms.buf, other.buf)
 }
 
 // WriteTo implements the io.WriterTo interface.
-func (ms *MemMessageSet) WriteTo(w io.Writer) (int64, error) {
+func (ms *BufferMessageSet) WriteTo(w io.Writer) (int64, error) {
 	n, err := w.Write(ms.buf)
 	return int64(n), err
 }
 
 // String implements the fmt.Stringer interface.
-func (ms *MemMessageSet) String() string {
+func (ms *BufferMessageSet) String() string {
 	var (
 		str bytes.Buffer
 		lim = 100
 	)
 
-	fmt.Fprintln(&str, "MemMessageSet{")
+	fmt.Fprintln(&str, "BufferMessageSet{")
 	halted := ms.Iterate(func(_ uint64, _ uint32, msg Message) bool {
 		if lim -= 1; lim == 0 {
 			return true
@@ -109,7 +109,7 @@ func (ms *MemMessageSet) String() string {
 
 // set writes the provided Messages to the MessageSet
 // starting with the provided offset.
-func (ms *MemMessageSet) set(offset uint64, msgs ...Message) {
+func (ms *BufferMessageSet) set(offset uint64, msgs ...Message) {
 	var n uint32
 	for i, msg := range msgs {
 		binary.BigEndian.PutUint64(ms.buf[n:], offset+uint64(i))
@@ -119,10 +119,10 @@ func (ms *MemMessageSet) set(offset uint64, msgs ...Message) {
 	ms.buf = ms.buf[:n]
 }
 
-// compress reduces the MemMessageSet to a single Message which holds the
+// compress reduces the BufferMessageSet to a single Message which holds the
 // compressed payload in its value.
 // It returns an error when the Codec fails to compress.
-func (ms *MemMessageSet) compress(offset uint64, codec Codec) error {
+func (ms *BufferMessageSet) compress(offset uint64, codec Codec) error {
 	if codec == NoCodec {
 		return nil
 	}

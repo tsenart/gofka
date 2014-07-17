@@ -8,39 +8,39 @@ import (
 	. "github.com/tsenart/gofka/testing"
 )
 
-func TestMemMessageSet_NewMemMessageSet(t *testing.T) {
+func TestBufferMessageSet_NewBufferMessageSet(t *testing.T) {
 	msg := NewMessage([]byte("k"), []byte("v"), NoCodec)
 
-	_, err := NewMemMessageSet(0, nil)
+	_, err := NewBufferMessageSet(0, nil)
 	Equals(t, err, ErrNilMessages)
 
-	_, err = NewMemMessageSet(0, msg, msg, nil)
+	_, err = NewBufferMessageSet(0, msg, msg, nil)
 	Equals(t, err, ErrNilMessages)
 
-	_, err = NewMemMessageSet(0, []Message{}...)
+	_, err = NewBufferMessageSet(0, []Message{}...)
 	Equals(t, err, ErrNoMessages)
 
-	_, err = NewMemMessageSet(0,
+	_, err = NewBufferMessageSet(0,
 		NewMessage([]byte("k"), []byte("v"), NoCodec),
 		NewMessage([]byte("k"), []byte("v"), GZIPCodec),
 	)
 	Equals(t, err, ErrMultipleCodecs)
 
-	_, err = NewMemMessageSet(0, NewMessage([]byte("k"), []byte("v"), NoCodec))
+	_, err = NewBufferMessageSet(0, NewMessage([]byte("k"), []byte("v"), NoCodec))
 	OK(t, err)
 
 }
 
-func TestMemMessageSet_Codecs(t *testing.T) {
+func TestBufferMessageSet_Codecs(t *testing.T) {
 	payload := make([]byte, 1024*1024)
 	_, err := rand.Read(payload)
 	OK(t, err)
 
-	plain, err := NewMemMessageSet(0, NewMessage(payload, payload, NoCodec))
+	plain, err := NewBufferMessageSet(0, NewMessage(payload, payload, NoCodec))
 	OK(t, err)
 
 	for _, codec := range []Codec{GZIPCodec} {
-		comp, err := NewMemMessageSet(0, NewMessage(payload, payload, codec))
+		comp, err := NewBufferMessageSet(0, NewMessage(payload, payload, codec))
 		OK(t, err)
 		msg := fmt.Sprintf(
 			"%s compressed = %d bytes, uncompressed = %d bytes",
@@ -55,15 +55,15 @@ func TestMemMessageSet_Codecs(t *testing.T) {
 	}
 }
 
-func BenchmarkNewMemMessageSetWithNoCodec(b *testing.B) {
-	benchmarkNewMemMessageSet(b, NoCodec)
+func BenchmarkNewBufferMessageSetWithNoCodec(b *testing.B) {
+	benchmarkNewBufferMessageSet(b, NoCodec)
 }
 
-func BenchmarkNewMemMessageSetWithGZIPCodec(b *testing.B) {
-	benchmarkNewMemMessageSet(b, GZIPCodec)
+func BenchmarkNewBufferMessageSetWithGZIPCodec(b *testing.B) {
+	benchmarkNewBufferMessageSet(b, GZIPCodec)
 }
 
-func benchmarkNewMemMessageSet(b *testing.B, codec Codec) {
+func benchmarkNewBufferMessageSet(b *testing.B, codec Codec) {
 	key, value := make([]byte, 1024*1024), make([]byte, 1024*1024)
 	_, err := rand.Read(key)
 	OK(b, err)
@@ -72,7 +72,7 @@ func benchmarkNewMemMessageSet(b *testing.B, codec Codec) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		NewMemMessageSet(0,
+		NewBufferMessageSet(0,
 			NewMessage(key, value, codec),
 			NewMessage(value, key, codec),
 			NewMessage(key, value, codec),

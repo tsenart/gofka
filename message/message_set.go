@@ -33,7 +33,7 @@ const (
 //  -----------------------------------------------------------------
 //
 // With compression enabled, the previous byte slice is compressed and set as
-// the value of a single Message within the MemMessageSet.
+// the value of a single Message within the MessageSet.
 //
 //  -----------------------------
 //  | offset+N | size | message |
