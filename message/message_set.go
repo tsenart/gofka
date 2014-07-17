@@ -48,4 +48,11 @@ type MessageSet interface {
 }
 
 // Iterator defines an utility type defining a MessageSet iterator
-type Iterator func(offset uint64, size uint32, msg Message) (halt bool)
+type Iterator func(m MessageAndOfset) (halt bool)
+
+// MessageAndOffset is an utility type wrapping a Message with its offset
+// within a MessageSet
+type MessageAndOfset struct {
+	Offset uint64
+	Message
+}
