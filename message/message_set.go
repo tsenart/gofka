@@ -22,13 +22,6 @@ const (
 	MsgOverhead   = MsgSizeLength + OffsetLength
 )
 
-// MessageOffset is an utility type wrapping a Message and its offset within a
-// MessageSet.
-type MessageOffset struct {
-	Offset uint64
-	Message
-}
-
 // MessageSet is an in-memory sequential Message container with a fixed
 // serialization format.
 //
@@ -94,7 +87,7 @@ func (ms *MessageSet) Iterate(fn func(m MessageOffset) bool) bool {
 		offset = binary.BigEndian.Uint64(ms.buf[i : i+OffsetLength])
 		size = binary.BigEndian.Uint32(ms.buf[i+OffsetLength : i+MsgOverhead])
 		msg = Message(ms.buf[i+MsgOverhead : i+int(MsgOverhead+size)])
-		if fn(MessageOffset{Offset: offset, Message: msg}) {
+		if fn(MessageOffset{Offset: offset, Pos: uint64(i), Message: msg}) {
 			return true // Halt iteration
 		}
 	}
