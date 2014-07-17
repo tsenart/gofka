@@ -52,14 +52,11 @@ func (ms *BufferMessageSet) Iterate(fn Iterator) bool {
 	var (
 		offset uint64
 		size   uint32
-		msg    Message
 	)
 	for i := 0; i < ms.Size(); i += int(MsgOverhead + size) {
 		offset = binary.BigEndian.Uint64(ms.buf[i : i+OffsetLength])
 		size = binary.BigEndian.Uint32(ms.buf[i+OffsetLength : i+MsgOverhead])
-		msg = Message(ms.buf[i+MsgOverhead : i+int(MsgOverhead+size)])
-
-		if fn(MessageAndOfset{Offset: offset, Message: msg}) {
+		if fn(offset, Message(ms.buf[i+MsgOverhead:i+int(MsgOverhead+size)])) {
 			return true // Halt iteration
 		}
 	}
@@ -90,7 +87,7 @@ func (ms *BufferMessageSet) String() string {
 	)
 
 	fmt.Fprintln(&str, "BufferMessageSet{")
-	halted := ms.Iterate(func(msg MessageAndOfset) bool {
+	halted := ms.Iterate(func(_ uint64, msg Message) bool {
 		if lim -= 1; lim == 0 {
 			return true
 		}
