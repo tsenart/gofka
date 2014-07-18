@@ -75,28 +75,41 @@ func NewMessageSet(offset uint64, msgs ...Message) (*MessageSet, error) {
 	return ms, nil
 }
 
-// Iterate calls fn for each Message in the MessageSet.
-// TODO: Support decompression.
-func (ms *MessageSet) Iterate(fn func(m MessageOffset) bool) bool {
-	var (
-		offset uint64
-		size   uint32
-		msg    Message
-	)
-	for i := 0; i < ms.Size(); i += int(MsgOverhead + size) {
-		offset = binary.BigEndian.Uint64(ms.buf[i : i+OffsetLength])
-		size = binary.BigEndian.Uint32(ms.buf[i+OffsetLength : i+MsgOverhead])
-		msg = Message(ms.buf[i+MsgOverhead : i+int(MsgOverhead+size)])
-		if fn(MessageOffset{Offset: offset, Pos: uint64(i), Message: msg}) {
-			return true // Halt iteration
-		}
+// SizeOf computes the byte size of a MessageSet containing msgs Messages.
+func SizeOf(msgs ...Message) (size uint32) {
+	for i := range msgs {
+		size += MsgOverhead + msgs[i].Size()
 	}
-	return false
+	return
+}
+
+// Iterator implements the Iterator interface.
+func (ms *MessageSet) Iterator() Iterator {
+	var pos, size uint32
+	return IteratorFunc(func(lv Level) (*MessageOffset, error) {
+		if pos >= ms.Size()-MsgOverhead {
+			return nil, nil
+		}
+
+		msg := &MessageOffset{
+			Offset: binary.BigEndian.Uint64(ms.buf[pos : pos+OffsetLength]),
+		}
+
+		if lv < Full {
+			return msg, nil
+		}
+
+		size = binary.BigEndian.Uint32(ms.buf[pos+OffsetLength:])
+		msg.Message = Message(ms.buf[pos+MsgOverhead : pos+MsgOverhead+size])
+		pos += msg.Size()
+
+		return msg, nil
+	})
 }
 
 // Size returns the byte size of the MessageSet.
-func (ms *MessageSet) Size() int {
-	return len(ms.buf)
+func (ms *MessageSet) Size() uint32 {
+	return uint32(len(ms.buf))
 }
 
 // Equal returns whether other MessageSet is equal to ms.
@@ -113,20 +126,21 @@ func (ms *MessageSet) WriteTo(w io.Writer) (int64, error) {
 // String implements the fmt.Stringer interface.
 func (ms *MessageSet) String() string {
 	var (
-		str bytes.Buffer
-		lim = 100
+		str  bytes.Buffer
+		iter = ms.Iterator()
+		msg  *MessageOffset
+		i    int
 	)
 
 	fmt.Fprintln(&str, "MessageSet{")
-	halted := ms.Iterate(func(m MessageOffset) bool {
-		if lim -= 1; lim == 0 {
-			return true
+	for i = 0; i <= 100; i++ {
+		if msg, _ = iter.Next(Full); msg == nil {
+			break
 		}
-		fmt.Fprintf(&str, "  %d: %s,\n", m.Offset, m)
-		return false
-	})
+		fmt.Fprintf(&str, "  %d: %s,\n", msg.Offset, msg)
+	}
 
-	if halted {
+	if i == 100 { // has more
 		fmt.Fprintln(&str, "  ...")
 	}
 
