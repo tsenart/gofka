@@ -10,9 +10,7 @@ import (
 
 // Errors returned by methods on a MessageSet.
 var (
-	ErrMultipleCodecs = errors.New("multiple codecs found")
-	ErrNoMessages     = errors.New("no messages provided")
-	ErrNilMessages    = errors.New("nil messages provided")
+	ErrNoMessages = errors.New("no messages provided")
 )
 
 // MessageSet is an in-memory sequential Message container with a fixed
@@ -36,41 +34,28 @@ type MessageSet struct{ buf []byte }
 
 // NewMessageSet returns a MessageSet containing the provided Messages.
 // The first offset is set to the provided one and increments from there for
-// each Message.
-//
-// The compression Codec is found by iterating over all passed Messages and
-// verifying that they all have the same Codec, or an error is returned.
-// In case the Codec is valid, the resulting MessageSet will have a single
-// Message with its value set to the compressed original MessageSet.
-// If the compression fails an error will be returned.
-func NewMessageSet(offset uint64, msgs ...Message) (*MessageSet, error) {
-	if len(msgs) == 0 {
+// each Message. Codec will be used to compress the messages.
+func NewMessageSet(offset uint64, codec Codec, msgs ...Message) (*MessageSet, error) {
+	ms := &MessageSet{buf: make([]byte, SizeOf(msgs...))}
+
+	if ms.Size() == 0 {
 		return nil, ErrNoMessages
-	} else if msgs[0] == nil {
-		return nil, ErrNilMessages
-	}
-	codec, size := msgs[0].Codec(), msgHeaderSize+msgs[0].Size()
-
-	for i := 1; i < len(msgs); i++ {
-		if msgs[i] == nil {
-			return nil, ErrNilMessages
-		} else if msgs[i].Codec() != codec {
-			return nil, ErrMultipleCodecs
-		}
-		size += msgHeaderSize + msgs[i].Size()
 	}
 
-	ms := &MessageSet{make([]byte, size)}
-	ms.set(offset, msgs...)
+	ms.set(offset, codec, msgs...)
 	if err := ms.compress(offset, codec); err != nil {
 		return nil, err
 	}
+
 	return ms, nil
 }
 
 // SizeOf computes the byte size of a MessageSet containing msgs Messages.
 func SizeOf(msgs ...Message) (size uint32) {
 	for i := range msgs {
+		if msgs[i] == nil {
+			continue
+		}
 		size += msgHeaderSize + msgs[i].Size()
 	}
 	return
@@ -143,9 +128,10 @@ func (ms *MessageSet) String() string {
 
 // set writes the provided Messages to the MessageSet
 // starting with the provided offset.
-func (ms *MessageSet) set(offset uint64, msgs ...Message) {
+func (ms *MessageSet) set(offset uint64, codec Codec, msgs ...Message) {
 	var n uint32
 	for i, msg := range msgs {
+		msg.SetCodec(codec)
 		binary.BigEndian.PutUint64(ms.buf[n:], offset+uint64(i))
 		binary.BigEndian.PutUint32(ms.buf[n+msgOffsetSize:], msg.Size())
 		n += uint32(msgHeaderSize + copy(ms.buf[n+msgHeaderSize:], msg))
@@ -166,7 +152,7 @@ func (ms *MessageSet) compress(offset uint64, codec Codec) error {
 		return err
 	}
 
-	ms.set(offset-1, NewMessage(nil, value, codec))
+	ms.set(offset-1, codec, NewMessage(nil, value))
 
 	return nil
 }

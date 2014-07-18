@@ -2,58 +2,30 @@ package message_test
 
 import (
 	"crypto/rand"
-	"fmt"
+	"testing"
+
 	. "github.com/tsenart/gofka/message"
 	. "github.com/tsenart/gofka/testing"
-	"testing"
 )
 
+func TestSizeOf(t *testing.T) {
+	msg := NewMessage([]byte("k"), []byte("v"))
+	Equals(t, SizeOf(msg, msg), uint32(28+28))
+}
+
 func TestMessageSet_NewMessageSet(t *testing.T) {
-	msg := NewMessage([]byte("k"), []byte("v"), NoCodec)
-
-	_, err := NewMessageSet(0, nil)
-	Equals(t, err, ErrNilMessages)
-
-	_, err = NewMessageSet(0, msg, msg, nil)
-	Equals(t, err, ErrNilMessages)
-
-	_, err = NewMessageSet(0, []Message{}...)
+	_, err := NewMessageSet(0, NoCodec, []Message{}...)
 	Equals(t, err, ErrNoMessages)
 
-	_, err = NewMessageSet(0,
-		NewMessage([]byte("k"), []byte("v"), NoCodec),
-		NewMessage([]byte("k"), []byte("v"), GZIPCodec),
-	)
-	Equals(t, err, ErrMultipleCodecs)
-
-	_, err = NewMessageSet(0, NewMessage([]byte("k"), []byte("v"), NoCodec))
+	_, err = NewMessageSet(0, NoCodec, NewMessage([]byte("k"), []byte("v")))
 	OK(t, err)
-
 }
 
-func TestMessageSet_Codecs(t *testing.T) {
-	payload := make([]byte, 1024*1024)
-	_, err := rand.Read(payload)
-	OK(t, err)
-
-	plain, err := NewMessageSet(0, NewMessage(payload, payload, NoCodec))
-	OK(t, err)
-
-	for _, codec := range []Codec{GZIPCodec} {
-		comp, err := NewMessageSet(0, NewMessage(payload, payload, codec))
-		OK(t, err)
-		msg := fmt.Sprintf(
-			"%s compressed = %d bytes, uncompressed = %d bytes",
-			codec,
-			comp.Size(),
-			plain.Size(),
-		)
-		t.Log(msg)
-		t.Log(plain)
-		t.Log(comp)
-		Assert(t, comp.Size() < plain.Size(), msg)
-	}
-}
+func TestMessageSet_Iterator(t *testing.T) { t.Skip("TODO") }
+func TestMessageSet_Size(t *testing.T)     { t.Skip("TODO") }
+func TestMessageSet_Equal(t *testing.T)    { t.Skip("TODO") }
+func TestMessageSet_WriteTo(t *testing.T)  { t.Skip("TODO") }
+func TestMessageSet_String(t *testing.T)   { t.Skip("TODO") }
 
 func BenchmarkNewMessageSetWithNoCodec(b *testing.B) {
 	benchmarkNewMessageSet(b, NoCodec)
@@ -72,17 +44,17 @@ func benchmarkNewMessageSet(b *testing.B, codec Codec) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		NewMessageSet(0,
-			NewMessage(key, value, codec),
-			NewMessage(value, key, codec),
-			NewMessage(key, value, codec),
-			NewMessage(value, key, codec),
-			NewMessage(key, value, codec),
-			NewMessage(value, key, codec),
-			NewMessage(key, value, codec),
-			NewMessage(value, key, codec),
-			NewMessage(key, value, codec),
-			NewMessage(value, key, codec),
+		NewMessageSet(0, codec,
+			NewMessage(key, value),
+			NewMessage(value, key),
+			NewMessage(key, value),
+			NewMessage(value, key),
+			NewMessage(key, value),
+			NewMessage(value, key),
+			NewMessage(key, value),
+			NewMessage(value, key),
+			NewMessage(key, value),
+			NewMessage(value, key),
 		)
 	}
 }

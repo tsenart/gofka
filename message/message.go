@@ -35,7 +35,7 @@ const (
 )
 
 // NewMessage returns a new Message with the given parameters.
-func NewMessage(key, value []byte, codec Codec) Message {
+func NewMessage(key, value []byte) Message {
 	if key == nil {
 		key = []byte{}
 	}
@@ -46,7 +46,6 @@ func NewMessage(key, value []byte, codec Codec) Message {
 
 	m := make(Message, minHeaderSize+len(key)+len(value))
 	m.SetMagic(One)
-	m.SetCodec(codec)
 	m.SetKey(key)
 	m.SetValue(value)
 	m.SetChecksum()

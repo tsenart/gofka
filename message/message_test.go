@@ -8,7 +8,7 @@ import (
 )
 
 func TestMessage_ChecksumHashValid(t *testing.T) {
-	m := NewMessage([]byte("key"), []byte("value"), NoCodec)
+	m := NewMessage([]byte("key"), []byte("value"))
 	Equals(t, m.Checksum(), m.Hash())
 	Assert(t, m.Valid(), "Valid: want: true, got: false")
 	m.SetValue([]byte("foobar"))
