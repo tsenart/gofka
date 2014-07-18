@@ -47,10 +47,10 @@ func (ms *FileMessageSet) Iterator() Iterator {
 		pos    uint32
 		err    error
 		n      int
-		header = make([]byte, MsgOverhead)
+		header = make([]byte, msgHeaderSize)
 	)
 	return IteratorFunc(func(lv Level) (*MessageOffset, error) {
-		if pos >= ms.Size()-MsgOverhead {
+		if pos >= ms.Size()-msgHeaderSize {
 			return nil, nil
 		}
 
@@ -66,7 +66,8 @@ func (ms *FileMessageSet) Iterator() Iterator {
 			return msg, nil
 		}
 
-		msg.Message = make(Message, binary.BigEndian.Uint32(header[OffsetLength:]))
+		// TODO(tsenart): Fix pos bug on Header iteration level
+		msg.Message = make(Message, binary.BigEndian.Uint32(header[msgOffsetSize:]))
 
 		for n = 0; n > 0; {
 			if n, err = ms.st.Read(msg.Message[n:]); err != nil {

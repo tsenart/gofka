@@ -8,18 +8,11 @@ import (
 	"io"
 )
 
-// Errors used by implementers of the MessageSet interface.
+// Errors returned by methods on a MessageSet.
 var (
 	ErrMultipleCodecs = errors.New("multiple codecs found")
 	ErrNoMessages     = errors.New("no messages provided")
 	ErrNilMessages    = errors.New("nil messages provided")
-)
-
-// Constants used by implementers of the MessageSet interface.
-const (
-	OffsetLength  = 8
-	MsgSizeLength = 4
-	MsgOverhead   = MsgSizeLength + OffsetLength
 )
 
 // MessageSet is an in-memory sequential Message container with a fixed
@@ -56,7 +49,7 @@ func NewMessageSet(offset uint64, msgs ...Message) (*MessageSet, error) {
 	} else if msgs[0] == nil {
 		return nil, ErrNilMessages
 	}
-	codec, size := msgs[0].Codec(), MsgOverhead+msgs[0].Size()
+	codec, size := msgs[0].Codec(), msgHeaderSize+msgs[0].Size()
 
 	for i := 1; i < len(msgs); i++ {
 		if msgs[i] == nil {
@@ -64,7 +57,7 @@ func NewMessageSet(offset uint64, msgs ...Message) (*MessageSet, error) {
 		} else if msgs[i].Codec() != codec {
 			return nil, ErrMultipleCodecs
 		}
-		size += MsgOverhead + msgs[i].Size()
+		size += msgHeaderSize + msgs[i].Size()
 	}
 
 	ms := &MessageSet{make([]byte, size)}
@@ -78,7 +71,7 @@ func NewMessageSet(offset uint64, msgs ...Message) (*MessageSet, error) {
 // SizeOf computes the byte size of a MessageSet containing msgs Messages.
 func SizeOf(msgs ...Message) (size uint32) {
 	for i := range msgs {
-		size += MsgOverhead + msgs[i].Size()
+		size += msgHeaderSize + msgs[i].Size()
 	}
 	return
 }
@@ -87,21 +80,20 @@ func SizeOf(msgs ...Message) (size uint32) {
 func (ms *MessageSet) Iterator() Iterator {
 	var pos, size uint32
 	return IteratorFunc(func(lv Level) (*MessageOffset, error) {
-		if pos >= ms.Size()-MsgOverhead {
+		if pos >= ms.Size()-msgHeaderSize {
 			return nil, nil
 		}
 
 		msg := &MessageOffset{
-			Offset: binary.BigEndian.Uint64(ms.buf[pos : pos+OffsetLength]),
+			Offset: binary.BigEndian.Uint64(ms.buf[pos : pos+msgOffsetSize]),
 		}
+		size = binary.BigEndian.Uint32(ms.buf[pos+msgOffsetSize:])
+		pos += msgHeaderSize + size
 
 		if lv < Full {
 			return msg, nil
 		}
-
-		size = binary.BigEndian.Uint32(ms.buf[pos+OffsetLength:])
-		msg.Message = Message(ms.buf[pos+MsgOverhead : pos+MsgOverhead+size])
-		pos += msg.Size()
+		msg.Message = Message(ms.buf[pos+msgHeaderSize : pos+msgHeaderSize+size])
 
 		return msg, nil
 	})
@@ -155,8 +147,8 @@ func (ms *MessageSet) set(offset uint64, msgs ...Message) {
 	var n uint32
 	for i, msg := range msgs {
 		binary.BigEndian.PutUint64(ms.buf[n:], offset+uint64(i))
-		binary.BigEndian.PutUint32(ms.buf[n+OffsetLength:], msg.Size())
-		n += uint32(MsgOverhead + copy(ms.buf[n+MsgOverhead:], msg))
+		binary.BigEndian.PutUint32(ms.buf[n+msgOffsetSize:], msg.Size())
+		n += uint32(msgHeaderSize + copy(ms.buf[n+msgHeaderSize:], msg))
 	}
 	ms.buf = ms.buf[:n]
 }
