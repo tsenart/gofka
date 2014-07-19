@@ -47,10 +47,10 @@ func (ms *FileMessageSet) Iterator() Iterator {
 		pos    uint32
 		err    error
 		n      int
-		header = make([]byte, msgHeaderSize)
+		header = make([]byte, MsgOverhead)
 	)
 	return IteratorFunc(func(lv Level) (*MessageOffset, error) {
-		if pos >= ms.Size()-msgHeaderSize {
+		if pos >= ms.Size()-MsgOverhead {
 			return nil, nil
 		}
 

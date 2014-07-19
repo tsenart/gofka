@@ -3,7 +3,7 @@ package message
 const (
 	msgOffsetSize = 8
 	msgSizeSize   = 4
-	msgHeaderSize = msgSizeSize + msgOffsetSize
+	MsgOverhead   = msgSizeSize + msgOffsetSize
 )
 
 // MessageOffset is an utility type wrapping a Message and its logical and
@@ -21,5 +21,5 @@ type MessageOffset struct {
 
 // Size returns this Message's size within a MessageSet.
 func (m *MessageOffset) Size() uint32 {
-	return msgHeaderSize + m.MsgSize
+	return MsgOverhead + m.MsgSize
 }

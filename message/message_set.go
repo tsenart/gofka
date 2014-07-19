@@ -56,31 +56,30 @@ func SizeOf(msgs ...Message) (size uint32) {
 		if msgs[i] == nil {
 			continue
 		}
-		size += msgHeaderSize + msgs[i].Size()
+		size += MsgOverhead + msgs[i].Size()
 	}
 	return
 }
 
 // Iterator implements the Iterator interface.
 func (ms *MessageSet) Iterator() Iterator {
-	var pos, size uint32
+	var pos uint32
 	return IteratorFunc(func(lv Level) (*MessageOffset, error) {
-		if pos >= ms.Size()-msgHeaderSize {
+		if pos >= ms.Size()-MsgOverhead {
 			return nil, nil
 		}
 
-		msg := &MessageOffset{
-			Offset: binary.BigEndian.Uint64(ms.buf[pos : pos+msgOffsetSize]),
-		}
-		size = binary.BigEndian.Uint32(ms.buf[pos+msgOffsetSize:])
-		pos += msgHeaderSize + size
+		var msg MessageOffset
+		msg.Offset = binary.BigEndian.Uint64(ms.buf[pos : pos+msgOffsetSize])
+		msg.MsgSize = binary.BigEndian.Uint32(ms.buf[pos+msgOffsetSize:])
+		msg.Pos = pos
 
-		if lv < Full {
-			return msg, nil
+		if lv == Full {
+			msg.Message = Message(ms.buf[pos+MsgOverhead : pos+MsgOverhead+msg.MsgSize])
 		}
-		msg.Message = Message(ms.buf[pos+msgHeaderSize : pos+msgHeaderSize+size])
+		pos += msg.Size()
 
-		return msg, nil
+		return &msg, nil
 	})
 }
 
@@ -134,7 +133,7 @@ func (ms *MessageSet) set(offset uint64, codec Codec, msgs ...Message) {
 		msg.SetCodec(codec)
 		binary.BigEndian.PutUint64(ms.buf[n:], offset+uint64(i))
 		binary.BigEndian.PutUint32(ms.buf[n+msgOffsetSize:], msg.Size())
-		n += uint32(msgHeaderSize + copy(ms.buf[n+msgHeaderSize:], msg))
+		n += uint32(MsgOverhead + copy(ms.buf[n+MsgOverhead:], msg))
 	}
 	ms.buf = ms.buf[:n]
 }

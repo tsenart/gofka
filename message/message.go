@@ -26,12 +26,12 @@ const (
 	magicLength     = 1
 	attrsOffset     = magicOffset + magicLength
 	attrsLength     = 1
+	codecMask       = 0x07
 	keySizeOffset   = attrsOffset + attrsLength
 	keySizeLength   = 4
 	keyOffset       = keySizeOffset + keySizeLength
 	valueSizeLength = 4
-	minHeaderSize   = crcLength + magicLength + attrsLength + keySizeLength + valueSizeLength
-	codecMask       = 0x07
+	MsgHeaderSize   = crcLength + magicLength + attrsLength + keySizeLength + valueSizeLength
 )
 
 // NewMessage returns a new Message with the given parameters.
@@ -44,7 +44,7 @@ func NewMessage(key, value []byte) Message {
 		value = []byte{}
 	}
 
-	m := make(Message, minHeaderSize+len(key)+len(value))
+	m := make(Message, MsgHeaderSize+len(key)+len(value))
 	m.SetMagic(One)
 	m.SetKey(key)
 	m.SetValue(value)
