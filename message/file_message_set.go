@@ -61,17 +61,12 @@ func (ms *FileMessageSet) Iterator() Iterator {
 		}
 
 		msg := &MessageOffset{Pos: pos, Offset: binary.BigEndian.Uint64(header)}
-
-		if lv < Full {
-			return msg, nil
-		}
-
-		// TODO(tsenart): Fix pos bug on Header iteration level
-		msg.Message = make(Message, binary.BigEndian.Uint32(header[msgOffsetSize:]))
-
-		for n = 0; n > 0; {
-			if n, err = ms.st.Read(msg.Message[n:]); err != nil {
-				return nil, err
+		if lv == Full {
+			msg.Message = make(Message, binary.BigEndian.Uint32(header[msgOffsetSize:]))
+			for n = 0; n > 0; {
+				if n, err = ms.st.Read(msg.Message[n:]); err != nil {
+					return nil, err
+				}
 			}
 		}
 
