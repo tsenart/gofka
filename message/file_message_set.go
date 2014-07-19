@@ -6,6 +6,7 @@ import (
 	"io"
 )
 
+// TODO: Explore a possible SectionWriter and SectionReadWriter
 type Store interface {
 	io.ReadWriteSeeker
 	io.ReaderAt
