@@ -31,25 +31,17 @@ const (
 	keySizeLength   = 4
 	keyOffset       = keySizeOffset + keySizeLength
 	valueSizeLength = 4
-	MsgHeaderSize   = crcLength + magicLength + attrsLength + keySizeLength + valueSizeLength
+	// MsgHeaderSize defines the size in bytes of every Message's header.
+	MsgHeaderSize = crcLength + magicLength + attrsLength + keySizeLength + valueSizeLength
 )
 
 // NewMessage returns a new Message with the given parameters.
 func NewMessage(key, value []byte) Message {
-	if key == nil {
-		key = []byte{}
-	}
-
-	if value == nil {
-		value = []byte{}
-	}
-
 	m := make(Message, MsgHeaderSize+len(key)+len(value))
 	m.SetMagic(One)
 	m.SetKey(key)
 	m.SetValue(value)
 	m.SetChecksum()
-
 	return m
 }
 

@@ -3,7 +3,8 @@ package message
 const (
 	msgOffsetSize = 8
 	msgSizeSize   = 4
-	MsgOverhead   = msgSizeSize + msgOffsetSize
+	// MsgOverhead defines the byte overhead for each Message within a MessageSet.
+	MsgOverhead = msgSizeSize + msgOffsetSize
 )
 
 // MessageOffset is an utility type wrapping a Message and its logical and

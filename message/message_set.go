@@ -66,20 +66,22 @@ func (ms *MessageSet) Iterator() Iterator {
 	var pos uint32
 	return IteratorFunc(func(lv Level) (*MessageOffset, error) {
 		if pos >= ms.Size()-MsgOverhead {
-			return nil, nil
+			return nil, io.EOF
 		}
 
-		var msg MessageOffset
-		msg.Offset = binary.BigEndian.Uint64(ms.buf[pos : pos+msgOffsetSize])
-		msg.MsgSize = binary.BigEndian.Uint32(ms.buf[pos+msgOffsetSize:])
-		msg.Pos = pos
+		msg := &MessageOffset{
+			Pos:     pos,
+			Offset:  binary.BigEndian.Uint64(ms.buf[pos : pos+msgOffsetSize]),
+			MsgSize: binary.BigEndian.Uint32(ms.buf[pos+msgOffsetSize:]),
+		}
 
 		if lv == Full {
 			msg.Message = Message(ms.buf[pos+MsgOverhead : pos+MsgOverhead+msg.MsgSize])
 		}
+
 		pos += msg.Size()
 
-		return &msg, nil
+		return msg, nil
 	})
 }
 
